@@ -1,5 +1,3 @@
-import com.android.build.gradle.internal.tasks.factory.dependsOn
-
 plugins {
     id("com.android.library")
 }
@@ -48,6 +46,9 @@ dependencies {
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation("org.godotengine:godot:4.5.1.stable")
+
+    implementation("androidx.activity:activity-compose")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

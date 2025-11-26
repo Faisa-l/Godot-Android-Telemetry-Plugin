@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH"/>
+
+
+
     <application>
         <!--
         Plugin metadata:
@@ -13,9 +18,18 @@
         - The `android:value` attribute should be the classpath to the plugin
         initializer.
         -->
+
         <meta-data
             android:name="org.godotengine.plugin.v2.AndroidTelemetryUtils"
             android:value="org.godotengine.plugin.android.androidtelemetryutils.AndroidTelemetryUtils"/>
+
+        <service
+            android:name="org.godotengine.plugin.android.androidtelemetryutils.StepCounter"
+            android:foregroundServiceType="health"
+            android:exported="false"/>
+
     </application>
+
+
 
 </manifest>
