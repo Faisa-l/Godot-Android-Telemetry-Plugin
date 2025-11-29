@@ -16,7 +16,7 @@ android {
     }
 
     defaultConfig {
-        minSdk = 24
+        minSdk = 34
 
         manifestPlaceholders["godotPluginName"] = pluginName
         manifestPlaceholders["godotPluginPackageName"] = pluginPackageName
@@ -44,12 +44,8 @@ android {
 
 dependencies {
     implementation(libs.appcompat)
-    implementation(libs.material)
     implementation("org.godotengine:godot:4.5.1.stable")
+    implementation("androidx.core:core-ktx:1.13.1")
 
-    implementation("androidx.activity:activity-compose")
-
-    testImplementation(libs.junit)
-    androidTestImplementation(libs.ext.junit)
-    androidTestImplementation(libs.espresso.core)
+    implementation("androidx.activity:activity-compose:1.9.3")
 }
