@@ -22,17 +22,13 @@ import androidx.core.app.ServiceCompat;
 
 import java.util.HashMap;
 
-/** TODO:
- * - Switch from service to work manager
- *
- */
-
 public class StepCounter extends Service implements SensorEventListener {
     SensorManager sensorManager;
     Sensor stepCounter;
     float startingSteps;
     public HashMap<String, Float> stepData;
 
+    private boolean registered;
     private final IBinder binder = new LocalBinder();
     public class LocalBinder extends Binder {
         StepCounter getService() {
@@ -41,15 +37,15 @@ public class StepCounter extends Service implements SensorEventListener {
         }
     }
 
+
     public boolean Initialise()
     {
+        registered = false;
         if (SetDeviceSensors())
         {
-            stepData = new HashMap<>();
-            stepData.put("steps", 0f);
-            startingSteps = 0f;
+            stepData = new HashMap<String, Float>();
+            ResetCounter();
 
-            RegisterSensors();
             return true;
         }
         return false;
@@ -71,8 +67,8 @@ public class StepCounter extends Service implements SensorEventListener {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId)
     {
-        String[] permissions = {Manifest.permission.ACTIVITY_RECOGNITION, Manifest.permission.POST_NOTIFICATIONS};
-        for (String permission : permissions)
+        // String[] permissions = {Manifest.permission.ACTIVITY_RECOGNITION, Manifest.permission.POST_NOTIFICATIONS};
+        for (String permission : AndroidTelemetryUtils.permissions)
         {
             if (checkSelfPermission(permission) == PackageManager.PERMISSION_DENIED)
             {
@@ -94,12 +90,12 @@ public class StepCounter extends Service implements SensorEventListener {
         return START_STICKY;
     }
 
-
     public void ResetCounter()
     {
         // Setting startingSteps to 0 will reset its value to the current step
         startingSteps = 0f;
         stepData.put("steps", 0f);
+        stepData.put("rawsteps", 0f);
     }
 
     // This is where we actually see if the event has done anything
@@ -114,6 +110,7 @@ public class StepCounter extends Service implements SensorEventListener {
             startingSteps = sensorEvent.values[0];
         }
         stepData.put("steps", sensorEvent.values[0] - startingSteps);
+        stepData.put("rawsteps", sensorEvent.values[0]);
     }
 
     @Override
@@ -128,6 +125,9 @@ public class StepCounter extends Service implements SensorEventListener {
 
     public Boolean SetDeviceSensors()
     {
+        // Early exit in case this was already set
+        if (IsSensorsAvailable()) return false;
+
         // Get sensor manager
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager == null)
@@ -146,13 +146,13 @@ public class StepCounter extends Service implements SensorEventListener {
 
     public void RegisterSensors()
     {
-        if (!IsSensorsAvailable()) return;
-        sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_GAME);
+        if (!IsSensorsAvailable() && registered) return;
+        sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     public void UnregisterSensors()
     {
-        if (!IsSensorsAvailable()) return;
+        if (!IsSensorsAvailable() && !registered) return;
         sensorManager.unregisterListener(this);
     }
 

@@ -11,7 +11,6 @@ import android.content.pm.PackageManager;
 import android.os.IBinder;
 import android.widget.Toast;
 
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 
@@ -19,6 +18,7 @@ import org.godotengine.godot.Godot;
 import org.godotengine.godot.plugin.GodotPlugin;
 import org.godotengine.godot.plugin.SignalInfo;
 import org.godotengine.godot.plugin.UsedByGodot;
+import org.godotengine.godot.Dictionary;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -74,10 +74,11 @@ public class AndroidTelemetryUtils extends GodotPlugin {
 
     // Request the activity recognition permission
     // Returns whether this was already accepted
-    static final String[] permissions = {
+    public static final String[] permissions = {
             Manifest.permission.ACTIVITY_RECOGNITION,
             Manifest.permission.POST_NOTIFICATIONS,
             Manifest.permission.FOREGROUND_SERVICE};
+
     @UsedByGodot
     public void RequestPermissions()
     {
@@ -108,16 +109,9 @@ public class AndroidTelemetryUtils extends GodotPlugin {
     }
 
     @UsedByGodot
-    public void InvokeTestSignal()
-    {
-        emitSignal("TestSignal", "Hello World!");
-    }
-
-    @UsedByGodot
-    public void Initalise()
+    public void Initialise()
     {
         CreateNotificationChannel();
-
     }
 
     // --- Notification channel setup ---
@@ -140,12 +134,17 @@ public class AndroidTelemetryUtils extends GodotPlugin {
 
     StepCounter stepTracker;
     Intent stepCounterIntent;
-    boolean started = false;
+    ServiceConnection con;
+
+    boolean serviceStarted = false;
+    boolean trackerInitialised = false;
 
     // Attempts to initialise the step counter as a foreground service
     @UsedByGodot
-    public boolean StartStepCounter()
+    public boolean InitialiseService()
     {
+        if (serviceStarted) return true;
+
         if (!HasPermissions()) {
             DisplayToast("Required permissions have not been granted.");
             return false;
@@ -155,10 +154,21 @@ public class AndroidTelemetryUtils extends GodotPlugin {
 
         if (stepCounterIntent == null) stepCounterIntent = new Intent (context, StepCounter.class);
         context.startForegroundService(stepCounterIntent);
-        started = true;
+        serviceStarted = true;
 
         if (SetStepCounterBinding()) return false;
         return true;
+    }
+
+    // Stops the service running
+    @UsedByGodot
+    public void StopService()
+    {
+        if (stepTracker == null) return;
+        DisplayToast("Stoping service");
+        stepTracker.UnregisterSensors();
+        getContext().unbindService(con);
+        getContext().stopService(stepCounterIntent);
     }
 
 
@@ -168,9 +178,22 @@ public class AndroidTelemetryUtils extends GodotPlugin {
     @UsedByGodot
     public boolean SetStepCounterBinding()
     {
-        if (!started) return false;
+        if (!serviceStarted) return false;
 
-        ServiceConnection con = new ServiceConnection() {
+        if (con == null) CreateServiceConnection();
+
+        if (getContext().bindService(stepCounterIntent, con, Context.BIND_AUTO_CREATE)) {
+            DisplayToast("Bound service");
+            return true;
+        } else {
+            DisplayToast("Error when binding service");
+            return false;
+        }
+    }
+
+
+    private void CreateServiceConnection() {
+        con = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName componentName, IBinder service) {
                 StepCounter.LocalBinder binder = (StepCounter.LocalBinder) service;
@@ -182,44 +205,86 @@ public class AndroidTelemetryUtils extends GodotPlugin {
 
             }
         };
-
-        if(getContext().bindService(stepCounterIntent, con, Context.BIND_AUTO_CREATE))
-        {
-            DisplayToast("Bound service");
-            return true;
-        }
-        else
-        {
-            DisplayToast("Error when binding service");
-            return false;
-        }
     }
 
+
+    //region Godot methods
+
+    // Returns sensor data
     @UsedByGodot
-    public HashMap<String, Float> GetStepData()
+    public Dictionary GetStepData()
     {
-        return (stepTracker != null) ? stepTracker.stepData : null;
+        if (!trackerInitialised && stepTracker == null)
+        {
+            DisplayToast("Step tracker is null");
+            return null;
+        }
+
+        // Convert HashSet to Godot Dictionary
+        var dictionary = new Dictionary();
+        dictionary.set_keys(new String[]{"steps", "rawsteps"});
+        dictionary.set_values(new Object[]{
+                stepTracker.stepData.get("steps"),
+                stepTracker.stepData.get("rawsteps")
+        });
+        return dictionary;
     }
 
+    // Resets the step counter
     @UsedByGodot
     public void ResetStepCounter()
     {
-        if (stepTracker == null) return;
+        if (!trackerInitialised &&stepTracker == null) return;
         stepTracker.ResetCounter();
     }
 
+    // Runs the tracker's init
     @UsedByGodot
-    public void UnregisterSensors()
+    public void InitialiseStepCounter()
     {
         if (stepTracker == null) return;
+        if(!stepTracker.Initialise())
+        {
+            DisplayToast("Failed to initialise step counter");
+        }
+        else
+        {
+            trackerInitialised = true;
+            DisplayToast("Step counter initialised");
+        }
+    }
+
+    // Register the step counter's sensors
+    @UsedByGodot
+    public void StartStepCounterSensor()
+    {
+        if (!trackerInitialised && stepTracker == null) return;
+        DisplayToast("Starting sensors");
+        stepTracker.RegisterSensors();
+    }
+
+    // Manually unregister the sensors
+    @UsedByGodot
+    public void EndStepCounterSensor()
+    {
+        if (!trackerInitialised && stepTracker == null) return;
+        DisplayToast("Ending sensors");
         stepTracker.UnregisterSensors();
     }
 
+    // Returns if the step counter exists and has its sensors set
     @UsedByGodot
     public boolean IsStepCounterValid()
     {
-        return stepTracker != null && stepTracker.IsSensorsAvailable();
+        if (!trackerInitialised && stepTracker == null)
+        {
+            DisplayToast("Step counter null");
+            return false;
+        }
+
+        return stepTracker.IsSensorsAvailable();
     }
 
+    //endregion
 
 }
