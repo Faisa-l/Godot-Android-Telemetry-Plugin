@@ -156,8 +156,7 @@ public class AndroidTelemetryUtils extends GodotPlugin {
         context.startForegroundService(stepCounterIntent);
         serviceStarted = true;
 
-        if (SetStepCounterBinding()) return false;
-        return true;
+        return SetStepCounterBinding();
     }
 
     // Stops the service running
@@ -169,6 +168,8 @@ public class AndroidTelemetryUtils extends GodotPlugin {
         stepTracker.UnregisterSensors();
         getContext().unbindService(con);
         getContext().stopService(stepCounterIntent);
+        trackerInitialised = false;
+        serviceStarted = false;
     }
 
 
@@ -214,7 +215,7 @@ public class AndroidTelemetryUtils extends GodotPlugin {
     @UsedByGodot
     public Dictionary GetStepData()
     {
-        if (!trackerInitialised && stepTracker == null)
+        if (stepTracker == null || !trackerInitialised)
         {
             DisplayToast("Step tracker is null");
             return null;
@@ -234,7 +235,7 @@ public class AndroidTelemetryUtils extends GodotPlugin {
     @UsedByGodot
     public void ResetStepCounter()
     {
-        if (!trackerInitialised &&stepTracker == null) return;
+        if (stepTracker == null || !trackerInitialised) return;
         stepTracker.ResetCounter();
     }
 
@@ -243,6 +244,8 @@ public class AndroidTelemetryUtils extends GodotPlugin {
     public void InitialiseStepCounter()
     {
         if (stepTracker == null) return;
+        if (trackerInitialised) return;
+
         if(!stepTracker.Initialise())
         {
             DisplayToast("Failed to initialise step counter");
@@ -258,7 +261,7 @@ public class AndroidTelemetryUtils extends GodotPlugin {
     @UsedByGodot
     public void StartStepCounterSensor()
     {
-        if (!trackerInitialised && stepTracker == null) return;
+        if (stepTracker == null || !trackerInitialised) return;
         DisplayToast("Starting sensors");
         stepTracker.RegisterSensors();
     }
@@ -267,7 +270,7 @@ public class AndroidTelemetryUtils extends GodotPlugin {
     @UsedByGodot
     public void EndStepCounterSensor()
     {
-        if (!trackerInitialised && stepTracker == null) return;
+        if (stepTracker == null || !trackerInitialised) return;
         DisplayToast("Ending sensors");
         stepTracker.UnregisterSensors();
     }
@@ -276,9 +279,12 @@ public class AndroidTelemetryUtils extends GodotPlugin {
     @UsedByGodot
     public boolean IsStepCounterValid()
     {
-        if (!trackerInitialised && stepTracker == null)
+        if (stepTracker == null) DisplayToast("step counter null on valid");
+        if (!trackerInitialised) DisplayToast("step counter not initialised on valid");
+
+        if (stepTracker == null || !trackerInitialised)
         {
-            DisplayToast("Step counter null");
+            // DisplayToast("Step counter null or isn't initialised");
             return false;
         }
 
