@@ -1,8 +1,6 @@
 package org.godotengine.plugin.android.androidtelemetryutils;
 
-import android.Manifest;
 import android.app.Notification;
-import android.app.NotificationChannel;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -14,10 +12,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Binder;
 import android.os.IBinder;
-import android.util.Log;
-import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.core.app.ServiceCompat;
 
 import java.util.HashMap;
@@ -45,7 +40,6 @@ public class StepCounter extends Service implements SensorEventListener {
         {
             stepData = new HashMap<String, Float>();
             ResetCounter();
-
             return true;
         }
         return false;
@@ -118,15 +112,16 @@ public class StepCounter extends Service implements SensorEventListener {
 
     }
 
+    // Returns true if sensor manager and step counter are available
     public boolean IsSensorsAvailable()
     {
-        return (sensorManager != null && stepCounter != null);
+        return sensorManager != null && stepCounter != null;
     }
 
     public Boolean SetDeviceSensors()
     {
         // Early exit in case this was already set
-        if (IsSensorsAvailable()) return false;
+        if (IsSensorsAvailable()) return true;
 
         // Get sensor manager
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -146,14 +141,21 @@ public class StepCounter extends Service implements SensorEventListener {
 
     public void RegisterSensors()
     {
+        if (!IsSensorsAvailable()) return;
+        if (registered) return;
+
         if (!IsSensorsAvailable() && registered) return;
         sensorManager.registerListener(this, stepCounter, SensorManager.SENSOR_DELAY_NORMAL);
+        registered = true;
     }
 
     public void UnregisterSensors()
     {
-        if (!IsSensorsAvailable() && !registered) return;
+        if (!IsSensorsAvailable()) return;
+        if (!registered) return;
+
         sensorManager.unregisterListener(this);
+        registered = false;
     }
 
     @Override
