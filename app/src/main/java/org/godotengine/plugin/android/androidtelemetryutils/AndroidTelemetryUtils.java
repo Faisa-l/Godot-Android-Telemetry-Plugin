@@ -30,9 +30,12 @@ public class AndroidTelemetryUtils extends GodotPlugin {
      *
      * @param godot
      */
+
+
     public AndroidTelemetryUtils(Godot godot) {
         super(godot);
     }
+
 
     @NonNull
     @Override
@@ -40,36 +43,8 @@ public class AndroidTelemetryUtils extends GodotPlugin {
         return BuildConfig.GODOT_PLUGIN_NAME;
     }
 
-    @NonNull
-    @Override
-    public Set<SignalInfo> getPluginSignals()
-    {
-        Set<SignalInfo> signals = new HashSet<>();
 
-        /* To add signal:
-            - Create new SignalInfo class
-            - First argument is the name of the signal
-            - Next arguments are the return types for the signal
-            - Effectively the same as 'signal [NAME](T, T...)' in gdscript
 
-           Connect this signal to a method in Godot. This plugin will invoke the signal.
-         */
-
-        signals.add(new SignalInfo("TestSignal", String.class));
-
-        return signals;
-    }
-
-    @UsedByGodot
-    public void DisplayToast(String message)
-    {
-        getGodot().getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                Toast.makeText(getGodot().getActivity(), message, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
 
     // Request the activity recognition permission
     // Returns whether this was already accepted
@@ -113,6 +88,9 @@ public class AndroidTelemetryUtils extends GodotPlugin {
         CreateNotificationChannel();
     }
 
+    //region Service methods
+
+
     // --- Notification channel setup ---
     NotificationChannel channel;
     NotificationManager notificationManager;
@@ -130,6 +108,7 @@ public class AndroidTelemetryUtils extends GodotPlugin {
     }
 
     // --- Setup of step manager here ---
+
 
     StepCounter stepTracker;
     Intent stepCounterIntent;
@@ -209,8 +188,21 @@ public class AndroidTelemetryUtils extends GodotPlugin {
         };
     }
 
+    //endregion
 
     //region Godot methods
+
+    // Display a toast to the user
+    @UsedByGodot
+    public void DisplayToast(String message)
+    {
+        getGodot().getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getGodot().getActivity(), message, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
 
     // Returns sensor data
     @UsedByGodot

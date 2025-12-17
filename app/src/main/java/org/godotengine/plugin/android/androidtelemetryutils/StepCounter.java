@@ -27,7 +27,6 @@ public class StepCounter extends Service implements SensorEventListener {
     private final IBinder binder = new LocalBinder();
     public class LocalBinder extends Binder {
         StepCounter getService() {
-            // Return this instance of LocalService so clients can call public methods.
             return StepCounter.this;
         }
     }
