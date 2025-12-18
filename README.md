@@ -1,1 +1,1 @@
-This is a custom plugin for my (other project)[https://github.com/Faisa-l/AT-Interactivity-for-Activity-Project]. It allows a Godot game to use Android's step counter sensor, running as a foreground service.
+This is a custom plugin for my [other project](https://github.com/Faisa-l/AT-Interactivity-for-Activity-Project). It allows a Godot game to use Android's step counter sensor, running as a foreground service.
